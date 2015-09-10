@@ -15,7 +15,7 @@ RED, YELLOW = True, False
 def generate_masks():
     """
     Generate all masks:
-    7x3 cols, 6x4 rows, 24 diags = 69 masks
+    7x3 cols, 6x4 rows, 24 diagonals = 69 masks
     """
     masks = []
     # Rows eg.
@@ -68,6 +68,22 @@ def generate_masks():
     return masks
 
 
+# Try to use colors in the terminal
+try:
+    from termcolor import colored
+except ImportError:
+    def colored(_, colour):
+        return 'R' if colour == 'red' \
+            else 'Y' if colour == 'yellow' \
+            else '_'
+
+
+def print_token(color):
+    return colored('o', 'red') if color == RED \
+        else colored('o', 'yellow') if color == YELLOW \
+        else '_'
+
+
 class Board(object):
     """
     Connect 4 boards consist of 7 columns, 6 rows.
@@ -95,12 +111,12 @@ class Board(object):
     def is_connect4(self, masks, turn):
         if turn == RED:
             bits = self.bits_red
-        elif turn == YELLOW:
+        else:
             bits = self.bits_yel
 
         for mask in masks:
             if mask & bits == mask:
-                return True
+                return mask
         return False
 
     def get_moves(self, turn):
@@ -128,7 +144,8 @@ class Board(object):
         mask = 1
         row = ''
         for h in range(WIDTH * HEIGHT):
-            sq = 'R' if self.bits_red & mask else 'Y' if self.bits_yel & mask else '_'
+            sq_colour = RED if self.bits_red & mask else YELLOW if self.bits_yel & mask else None
+            sq = print_token(sq_colour)
             row += sq
             mask <<= 1
             if (h + 1) % WIDTH == 0:
@@ -137,30 +154,33 @@ class Board(object):
         return '\n'.join(reversed(rows)) + '\n'
 
 
-def main():
-    masks = generate_masks()
-
+def play_random_game(masks):
     b = Board(0b0, 0b0)
-    print(b)
-
     turn = RED
-
+    move_list = []
     while True:
-
         moves = b.get_moves(turn)
         if moves:
             i = random.choice(range(len(moves)))
-            print 'Move:', i
+            move_list.append(i)
             b = moves[i]
-            print(b)
-            if b.is_connect4(masks, turn):
+            mask = b.is_connect4(masks, turn)
+            if mask is not False:
+                print(b)
+                print(Board(bits_red=mask) if turn == RED else Board(bits_yel=mask))
                 print('Connect {1} {0}!'.format('red' if turn == RED else 'yellow', str(CONNECT_N)))
+                print('{0} Moves:'.format(len(move_list)))
+                print(str(move_list))
                 break
             turn = not turn
-
-
         else:
+            print(b)
             break
+
+
+def main():
+    masks = generate_masks()
+    play_random_game(masks)
 
 
 if __name__ == '__main__':
